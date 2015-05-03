@@ -33,32 +33,8 @@ struct opts_s {
 	.nrgotpcrel_name= "nr_gotpcrel",
 };
 
-static bool __ptr_oob(const void *ptr, const void *start, const size_t size)
-{
-	const void *end = (const void *)((const unsigned long)start + size);
-	return ptr > end || ptr < start;
-}
-
-static bool test_pointer(const void *ptr, const void *start, const size_t size,
-			 const char *name, const char *file, const int line)
-{
-	if (__ptr_oob(ptr, start, size)) {
-		pr_err("Corrupted pointer %p (%s) at %s:%d\n",
-		       ptr, name, file, line);
-		return true;
-	}
-	return false;
-}
-
 static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 {
-#define ptr_oob(__ptr)						\
-	do {							\
-		if (test_pointer((__ptr), mem, size, #__ptr,	\
-				 __FILE__, __LINE__))		\
-			return -1;				\
-	} while (0)
-
 	Elf64_Ehdr *hdr = (void *)mem;
 	Elf64_Shdr *symtab_hdr = NULL;
 	Elf64_Sym *symbols = NULL;
@@ -90,18 +66,18 @@ static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 
 	secstrings_hdr = (void *)mem + hdr->e_shoff + hdr->e_shentsize * hdr->e_shstrndx;
 	secstrings = (void *)mem + secstrings_hdr->sh_offset;
-	ptr_oob(secstrings_hdr);
-	ptr_oob(secstrings);
+	ptr_func_exit(secstrings_hdr);
+	ptr_func_exit(secstrings);
 
 	pr_debug("Sections\n------------\n");
 	for (i = 0; i < hdr->e_shnum; i++) {
 		Elf64_Shdr *sh = (void *)mem + hdr->e_shoff + hdr->e_shentsize * i;
-		ptr_oob(sh);
+		ptr_func_exit(sh);
 
 		if (sh->sh_type == SHT_SYMTAB)
 			symtab_hdr = sh;
 
-		ptr_oob(&secstrings[sh->sh_name]);
+		ptr_func_exit(&secstrings[sh->sh_name]);
 		pr_debug("\t index %-2d type 0x%-2x name %s\n",
 			 i, sh->sh_type, &secstrings[sh->sh_name]);
 
@@ -120,12 +96,12 @@ static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 
 	pr_debug("Symbols\n------------\n");
 	strtab_hdr = sec_hdrs[symtab_hdr->sh_link];
-	ptr_oob(strtab_hdr);
+	ptr_func_exit(strtab_hdr);
 
 	symbols = (void *)mem + symtab_hdr->sh_offset;
 	symstrings = (void *)mem + strtab_hdr->sh_offset;
-	ptr_oob(symbols);
-	ptr_oob(symstrings);
+	ptr_func_exit(symbols);
+	ptr_func_exit(symstrings);
 
 	if (sizeof(*symbols) != symtab_hdr->sh_entsize) {
 		pr_err("Symbol table align differ\n");
@@ -138,9 +114,9 @@ static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 		Elf64_Shdr *sh_src;
 		const char *name;
 
-		ptr_oob(sym);
+		ptr_func_exit(sym);
 		name = &symstrings[sym->st_name];
-		ptr_oob(name);
+		ptr_func_exit(name);
 
 		if (*name) {
 			pr_debug("\ttype 0x%-2x bind 0x%-2x shndx 0x%-4x value 0x%-2x name %s\n",
@@ -150,7 +126,7 @@ static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 				 name);
 			if (sym->st_shndx && sym->st_shndx < hdr->e_shnum) {
 				sh_src = sec_hdrs[sym->st_shndx];
-				ptr_oob(sh_src);
+				ptr_func_exit(sh_src);
 				if (ELF64_ST_TYPE(sym->st_info) == STT_FUNC ||
 				    ELF64_ST_TYPE(sym->st_info) == STT_OBJECT)
 					pr_out("#define %s%s 0x%x\n",
@@ -177,7 +153,7 @@ static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 			continue;
 
 		sh_rel = sec_hdrs[sh->sh_info];
-		ptr_oob(sh_rel);
+		ptr_func_exit(sh_rel);
 
 		pr_debug("\tsection %2d type 0x%-2x link 0x%-2x info 0x%-2x name %s\n", i,
 			 sh->sh_type, sh->sh_link, sh->sh_info, &secstrings[sh->sh_name]);
@@ -193,16 +169,16 @@ static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 				Elf64_Rel rel;
 				Elf64_Rela rela;
 			} *r = (void *)mem + sh->sh_offset + sh->sh_entsize * k;
-			ptr_oob(r);
+			ptr_func_exit(r);
 
 			sym = &symbols[ELF64_R_SYM(r->rel.r_info)];
-			ptr_oob(sym);
+			ptr_func_exit(sym);
 			name = &symstrings[sym->st_name];
-			ptr_oob(name);
+			ptr_func_exit(name);
 			where = (void *)mem + sh_rel->sh_offset + r->rel.r_offset;
-			ptr_oob(where);
+			ptr_func_exit(where);
 			sh_src = sec_hdrs[sym->st_shndx];
-			ptr_oob(sh_src);
+			ptr_func_exit(sh_src);
 
 			pr_debug("\t\tr_offset 0x%-4x r_info 0x%-4x / sym 0x%-2x type 0x%-2x symsecoff 0x%-4x\n",
 				 r->rel.r_offset, r->rel.r_info,
@@ -213,7 +189,7 @@ static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 			if (sym->st_shndx == SHN_UNDEF)
 				continue;
 
-			ptr_oob(((void *)mem + sh_rel->sh_offset + r->rel.r_offset));
+			ptr_func_exit(((void *)mem + sh_rel->sh_offset + r->rel.r_offset));
 			if (sh->sh_type == SHT_REL) {
 				addend32 = *(s32 *)where;
 				addend64 = *(s64 *)where;
@@ -285,18 +261,10 @@ static int handle_elf64(const struct opts_s *opts, char *mem, size_t size)
 err:
 	free(sec_hdrs);
 	return -1;
-#undef prt_oob
 }
 
 static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 {
-#define ptr_oob(__ptr)						\
-	do {							\
-		if (test_pointer((__ptr), mem, size, #__ptr,	\
-				 __FILE__, __LINE__))		\
-			return -1;				\
-	} while (0)
-
 	Elf32_Ehdr *hdr = mem;
 	Elf32_Shdr *symtab_hdr = NULL;
 	Elf32_Sym *symbols = NULL;
@@ -328,18 +296,18 @@ static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 
 	secstrings_hdr = mem + hdr->e_shoff + hdr->e_shentsize * hdr->e_shstrndx;
 	secstrings = mem + secstrings_hdr->sh_offset;
-	ptr_oob(secstrings_hdr);
-	ptr_oob(secstrings);
+	ptr_func_exit(secstrings_hdr);
+	ptr_func_exit(secstrings);
 
 	pr_debug("Sections\n------------\n");
 	for (i = 0; i < hdr->e_shnum; i++) {
 		Elf32_Shdr *sh = mem + hdr->e_shoff + hdr->e_shentsize * i;
-		ptr_oob(sh);
+		ptr_func_exit(sh);
 
 		if (sh->sh_type == SHT_SYMTAB)
 			symtab_hdr = sh;
 
-		ptr_oob(&secstrings[sh->sh_name]);
+		ptr_func_exit(&secstrings[sh->sh_name]);
 		pr_debug("\t index %-2d type 0x%-2x name %s\n",
 			 i, sh->sh_type, &secstrings[sh->sh_name]);
 
@@ -358,12 +326,12 @@ static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 
 	pr_debug("Symbols\n------------\n");
 	strtab_hdr = sec_hdrs[symtab_hdr->sh_link];
-	ptr_oob(strtab_hdr);
+	ptr_func_exit(strtab_hdr);
 
 	symbols = mem + symtab_hdr->sh_offset;
 	symstrings = mem + strtab_hdr->sh_offset;
-	ptr_oob(symbols);
-	ptr_oob(symstrings);
+	ptr_func_exit(symbols);
+	ptr_func_exit(symstrings);
 
 	if (sizeof(*symbols) != symtab_hdr->sh_entsize) {
 		pr_err("Symbol table align differ\n");
@@ -376,9 +344,9 @@ static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 		Elf32_Shdr *sh_src;
 		const char *name;
 
-		ptr_oob(sym);
+		ptr_func_exit(sym);
 		name = &symstrings[sym->st_name];
-		ptr_oob(name);
+		ptr_func_exit(name);
 
 		if (*name) {
 			pr_debug("\ttype 0x%-2x bind 0x%-2x shndx 0x%-4x value 0x%-2x name %s\n",
@@ -388,7 +356,7 @@ static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 				 name);
 			if (sym->st_shndx && sym->st_shndx < hdr->e_shnum) {
 				sh_src = sec_hdrs[sym->st_shndx];
-				ptr_oob(sh_src);
+				ptr_func_exit(sh_src);
 				if (ELF32_ST_TYPE(sym->st_info) == STT_FUNC ||
 				    ELF32_ST_TYPE(sym->st_info) == STT_OBJECT)
 					pr_out("#define %s%s 0x%x\n",
@@ -415,7 +383,7 @@ static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 			continue;
 
 		sh_rel = sec_hdrs[sh->sh_info];
-		ptr_oob(sh_rel);
+		ptr_func_exit(sh_rel);
 
 		pr_debug("\tsection %2d type 0x%-2x link 0x%-2x info 0x%-2x name %s\n", i,
 			 sh->sh_type, sh->sh_link, sh->sh_info, &secstrings[sh->sh_name]);
@@ -430,16 +398,16 @@ static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 				Elf32_Rel rel;
 				Elf32_Rela rela;
 			} *r = mem + sh->sh_offset + sh->sh_entsize * k;
-			ptr_oob(r);
+			ptr_func_exit(r);
 
 			sym = &symbols[ELF32_R_SYM(r->rel.r_info)];
-			ptr_oob(sym);
+			ptr_func_exit(sym);
 			name = &symstrings[sym->st_name];
-			ptr_oob(name);
+			ptr_func_exit(name);
 			where = mem + sh_rel->sh_offset + r->rel.r_offset;
-			ptr_oob(where);
+			ptr_func_exit(where);
 			sh_src = sec_hdrs[sym->st_shndx];
-			ptr_oob(sh_src);
+			ptr_func_exit(sh_src);
 
 			pr_debug("\t\tr_offset 0x%-4x r_info 0x%-4x / sym 0x%-2x type 0x%-2x symsecoff 0x%-4x\n",
 				 r->rel.r_offset, r->rel.r_info,
@@ -450,7 +418,7 @@ static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 			if (sym->st_shndx == SHN_UNDEF)
 				continue;
 
-			ptr_oob((mem + sh_rel->sh_offset + r->rel.r_offset));
+			ptr_func_exit((mem + sh_rel->sh_offset + r->rel.r_offset));
 			if (sh->sh_type == SHT_REL) {
 				addend = *(s32 *)where;
 			} else
@@ -497,7 +465,6 @@ static int handle_elf32(const struct opts_s *opts, void *mem, size_t size)
 err:
 	free(sec_hdrs);
 	return -1;
-#undef prt_oob
 }
 
 static int handle_elf(const struct opts_s *opts, char *mem, size_t size)
