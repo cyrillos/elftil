@@ -13,25 +13,17 @@
 #include <sys/mman.h>
 
 #include "compiler.h"
-
-typedef uint32_t u32;
-typedef int32_t s32;
-
-typedef uint64_t u64;
-typedef int64_t s64;
-
-#define pr_out(fmt, ...)	fprintf(stdout, fmt, ##__VA_ARGS__)
-#define pr_debug(fmt, ...)	fprintf(stderr, fmt, ##__VA_ARGS__)
-#define pr_err(fmt, ...)	fprintf(stderr, "Error (%s:%d): "fmt, __FILE__, __LINE__, ##__VA_ARGS__)
-#define pr_perror(fmt, ...)	fprintf(stderr, "Error (%s:%d): "fmt "%m\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#include "types.h"
+#include "util.h"
+#include "log.h"
 
 struct opts_s {
-	char *input_filename;
-	char *stream_name;
-	char *type_name;
-	char *var_name;
-	char *sym_postfix;
-	char *nrgotpcrel_name;
+	char		*input_filename;
+	char		*stream_name;
+	char		*type_name;
+	char		*var_name;
+	char		*sym_postfix;
+	char		*nrgotpcrel_name;
 } opts = {
 	.input_filename	= "file.o",
 	.stream_name	= "stream",

@@ -6,8 +6,6 @@ PROGRAM := elftil
 include $(__simak_dir)include.mk
 include $(__simak_dir)macro.mk
 
-ccflags-y += -iquote `pwd`/include
-
 $(eval $(call gen-built-in,src))
 
 $(PROGRAM): src/built-in.o
