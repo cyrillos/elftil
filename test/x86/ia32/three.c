@@ -10,7 +10,7 @@ const struct_t s1 = {
 
 int foo3(const struct_t *s1, const struct_t *s2)
 {
-	sys_write(1, s1->str1, __builtin_strlen(s1->str1));
-	sys_write(1, s1->str2, __builtin_strlen(s1->str2));
+	sys_write(1, s2->str1, __builtin_strlen(s2->str1));
+	sys_write(1, s2->str2, __builtin_strlen(s2->str2));
 	sys_exit(0);
 }
