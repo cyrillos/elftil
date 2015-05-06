@@ -36,28 +36,4 @@
 #define memzero_p(p)		memset(p, 0, sizeof(*p))
 #define memzero(p, size)	memset(p, 0, size)
 
-static bool __ptr_oob(const void *ptr, const void *start, const size_t size)
-{
-	const void *end = (const void *)((const unsigned long)start + size);
-	return ptr > end || ptr < start;
-}
-
-static bool test_pointer(const void *ptr, const void *start, const size_t size,
-			 const char *name, const char *file, const int line)
-{
-	if (__ptr_oob(ptr, start, size)) {
-		pr_err("Corrupted pointer %p (%s) at %s:%d\n",
-		       ptr, name, file, line);
-		return true;
-	}
-	return false;
-}
-
-#define ptr_func_exit(__ptr)						\
-	do {								\
-		if (test_pointer((__ptr), mem, size, #__ptr,		\
-				 __FILE__, __LINE__))			\
-			return -1;					\
-	} while (0)
-
 #endif /* __UTIL_H__ */

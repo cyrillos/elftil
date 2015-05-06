@@ -14,7 +14,9 @@ typedef struct {
 
 extern opt_t opts;
 
+#if defined(CONFIG_X86_32) || defined(CONFIG_X86_64)
 extern int handle_elf_x86_32(const opt_t *opts, char *mem, size_t size);
 extern int handle_elf_x86_64(const opt_t *opts, char *mem, size_t size);
+#endif
 
 #endif /* __ELFTIL_H__ */

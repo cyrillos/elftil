@@ -35,6 +35,7 @@ struct opts_s {
 
 static int handle_elf(const struct opts_s *opts, char *mem, size_t size)
 {
+#if defined(CONFIG_X86_32) || defined(CONFIG_X86_64)
 	unsigned char elf_ident_x86_32[EI_NIDENT] = {
 		0x7f, 0x45, 0x4c, 0x46, 0x01, 0x01, 0x01, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -49,6 +50,7 @@ static int handle_elf(const struct opts_s *opts, char *mem, size_t size)
 		return handle_elf_x86_32(opts, mem, size);
 	else if (memcmp(mem, elf_ident_x86_64, sizeof(elf_ident_x86_64)) == 0)
 		return handle_elf_x86_64(opts, mem, size);
+#endif
 
 	pr_err("Unsupported Elf format detected\n");
 	return -1;
