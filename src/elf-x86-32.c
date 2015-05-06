@@ -2,7 +2,9 @@
 # undef CONFIG_X86_64
 #endif
 
-#define CONFIG_X86_32
+#ifndef CONFIG_X86_32
+# define CONFIG_X86_32
+#endif
 
 #define handle_elf	handle_elf_x86_32
 
