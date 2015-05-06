@@ -20,6 +20,6 @@ clean:
 	$(call msg-gen, $@)
 	$(Q) $(MAKE) $(build)=src clean
 	$(Q) $(RM) $(PROGRAM)
-.PHONY: all
+.PHONY: clean
 
 .DEFAULT_GOAL := all
