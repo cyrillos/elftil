@@ -12,7 +12,7 @@ $(PROGRAM): src/built-in.o
 	$(call msg-gen, $@)
 	$(Q) $(CC) -o $@ $^
 
-all: $(PROGRAM)
+all: src $(PROGRAM)
 	@true
 .PHONY: all
 
